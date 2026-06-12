@@ -1,0 +1,122 @@
+"""Nissan Leaf OBD BLE — Home Assistant custom integration (ha_obd_ble).
+
+Sets up one coordinator per config entry (one per OBD adapter / Leaf),
+registers a Bluetooth callback so new polls are triggered immediately when
+the adapter comes back into range, and forwards entries to the sensor platform.
+"""
+
+from __future__ import annotations
+
+import logging
+
+from bleak_retry_connector import get_device
+
+from homeassistant.components import bluetooth
+from homeassistant.components.bluetooth import async_last_service_info
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_ADDRESS, Platform
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.typing import ConfigType
+
+from .py_nissan_leaf_obd_ble import NissanLeafObdBleApiClient
+
+from .const import DOMAIN, STARTUP_MESSAGE
+from .coordinator import NissanLeafCoordinator
+
+PLATFORMS = [Platform.SENSOR]
+
+_LOGGER: logging.Logger = logging.getLogger(__package__)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """YAML-based setup is not supported; only UI config flow is used."""
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up an ha_obd_ble config entry."""
+    if hass.data.get(DOMAIN) is None:
+        hass.data.setdefault(DOMAIN, {})
+        _LOGGER.info(STARTUP_MESSAGE)
+
+    address: str = entry.data[CONF_ADDRESS]
+
+    # Try to resolve a BLEDevice from the current scan results or from
+    # HA's last-seen Bluetooth history.  Using connectable=False for the
+    # history lookup lets us create the API client even when the car is
+    # away from home — the coordinator handles the "device not reachable"
+    # case gracefully by returning persisted data.
+    ble_device = (
+        bluetooth.async_ble_device_from_address(hass, address.upper(), connectable=True)
+        or (
+            (info := async_last_service_info(hass, address.upper(), connectable=False))
+            and info.device
+        )
+        or await get_device(address)
+    )
+
+    if not ble_device:
+        raise ConfigEntryNotReady(
+            f"Could not find OBD BLE adapter with address {address}. "
+            "Ensure the adapter has been seen at least once by HA's Bluetooth stack."
+        )
+
+    api = NissanLeafObdBleApiClient(ble_device)
+
+    coordinator = NissanLeafCoordinator(hass, entry, api)
+
+    # Load persisted sensor data BEFORE the first refresh so sensors
+    # immediately show their last known values (even if the car is away).
+    await coordinator.async_load_persistent_data()
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Re-trigger a data refresh whenever the adapter reappears in BLE range
+    @callback
+    def _on_adapter_detected(
+        service_info: bluetooth.BluetoothServiceInfoBleak,
+        change: bluetooth.BluetoothChange,
+    ) -> None:
+        _LOGGER.debug(
+            "OBD adapter %s detected (%s) — scheduling refresh", address, change
+        )
+        hass.async_create_task(coordinator.async_request_refresh())
+
+    entry.async_on_unload(
+        bluetooth.async_register_callback(
+            hass,
+            _on_adapter_detected,
+            {"address": address},
+            bluetooth.BluetoothScanningMode.ACTIVE,
+        )
+    )
+
+    # Apply updated options immediately when the user clicks "Configure"
+    async def _on_options_updated(
+        hass: HomeAssistant | None, entry: ConfigEntry
+    ) -> None:
+        coordinator.options = entry.options
+
+    entry.async_on_unload(entry.add_update_listener(_on_options_updated))
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        if not hass.data[DOMAIN]:
+            hass.data.pop(DOMAIN)
+    return unloaded
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry (called after options change that requires restart)."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)

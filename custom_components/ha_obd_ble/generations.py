@@ -505,14 +505,17 @@ _ALL_SENSORS: dict[str, SensorEntityDescription] = {
 }
 
 # Sensors not present on ZE0 / AZE0 platforms
-_ZE0_EXCLUDED = {"e_pedal_mode", "ambient_temp"}
+_ZE0_EXCLUDED = {"e_pedal_mode"}
+
+# Sensors not present on ZE1 / Auto platforms
+_ZE1_EXCLUDED = {"ambient_temp"}
 
 # Map from generation identifier → ordered list of sensor keys
 GENERATION_SENSOR_KEYS: dict[str, list[str]] = {
     GENERATION_ZE0: [k for k in _ALL_SENSORS if k not in _ZE0_EXCLUDED],
     GENERATION_AZE0: [k for k in _ALL_SENSORS if k not in _ZE0_EXCLUDED],
-    GENERATION_ZE1: list(_ALL_SENSORS.keys()),
-    GENERATION_AUTO: list(_ALL_SENSORS.keys()),
+    GENERATION_ZE1: [k for k in _ALL_SENSORS if k not in _ZE1_EXCLUDED],
+    GENERATION_AUTO: [k for k in _ALL_SENSORS if k not in _ZE1_EXCLUDED],
 }
 
 

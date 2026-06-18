@@ -213,9 +213,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 }
             ),
-            description_placeholders={
-                "info": "Select your battery size so the integration can accurately calculate State of Health (SOH)"
-            },
         )
 
     # ------------------------------------------------------------------

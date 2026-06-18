@@ -1,7 +1,7 @@
 {
   "domain": "ha_obd_ble",
   "name": "OBD BLE",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "codeowners": ["@hucknz"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],

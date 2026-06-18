@@ -41,13 +41,13 @@ GENERATION_OPTIONS: dict[str, str] = {
 # These are the approximate maximum usable capacities for each battery size.
 BATTERY_NOMINAL_AH: dict[int, float] = {
     24: 60.6,
-    30: 77.5,
+    30: 79.48,
     40: 105.6,
     62: 167.6,
 }
 
 # Default nominal Ah if user doesn't specify (30 kWh is most common)
-DEFAULT_NOMINAL_AH = 77.5
+DEFAULT_NOMINAL_AH = 79.48
 
 # Default polling intervals (seconds)
 DEFAULT_FAST_POLL = 10

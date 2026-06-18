@@ -219,61 +219,33 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     # ------------------------------------------------------------------
-    # Step 4: BLE UUID configuration
+    # Step 4: Create entry (UUIDs can be configured later via options)
     # ------------------------------------------------------------------
 
     async def async_step_configure(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Allow overriding BLE UUIDs for non-standard OBD adapters."""
-        if user_input is not None:
-            address = self._selected_device.address
-            generation = self._selected_generation
-            nominal_ah = self.context.get("nominal_ah", DEFAULT_NOMINAL_AH)
-            gen_label = GENERATION_OPTIONS.get(generation, generation)
+        """Create the config entry with defaults; UUIDs can be changed later."""
+        address = self._selected_device.address
+        generation = self._selected_generation
+        nominal_ah = self.context.get("nominal_ah", DEFAULT_NOMINAL_AH)
+        gen_label = GENERATION_OPTIONS.get(generation, generation)
 
-            return self.async_create_entry(
-                title=f"Nissan Leaf {gen_label.split('—')[0].strip()} ({address})",
-                data={
-                    CONF_ADDRESS: address,
-                    CONF_GENERATION: generation,
-                },
-                options={
-                    CONF_SERVICE_UUID: user_input.get(
-                        CONF_SERVICE_UUID, DEFAULT_SERVICE_UUID
-                    ),
-                    CONF_CHARACTERISTIC_UUID_READ: user_input.get(
-                        CONF_CHARACTERISTIC_UUID_READ,
-                        DEFAULT_CHARACTERISTIC_UUID_READ,
-                    ),
-                    CONF_CHARACTERISTIC_UUID_WRITE: user_input.get(
-                        CONF_CHARACTERISTIC_UUID_WRITE,
-                        DEFAULT_CHARACTERISTIC_UUID_WRITE,
-                    ),
-                    CONF_NOMINAL_AH: nominal_ah,
-                    "fast_poll": DEFAULT_FAST_POLL,
-                    "slow_poll": DEFAULT_SLOW_POLL,
-                    "xs_poll": DEFAULT_XS_POLL,
-                },
-            )
-
-        return self.async_show_form(
-            step_id="configure",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_SERVICE_UUID, default=DEFAULT_SERVICE_UUID
-                    ): str,
-                    vol.Optional(
-                        CONF_CHARACTERISTIC_UUID_READ,
-                        default=DEFAULT_CHARACTERISTIC_UUID_READ,
-                    ): str,
-                    vol.Optional(
-                        CONF_CHARACTERISTIC_UUID_WRITE,
-                        default=DEFAULT_CHARACTERISTIC_UUID_WRITE,
-                    ): str,
-                }
-            ),
+        return self.async_create_entry(
+            title=f"Nissan Leaf {gen_label.split('—')[0].strip()} ({address})",
+            data={
+                CONF_ADDRESS: address,
+                CONF_GENERATION: generation,
+            },
+            options={
+                CONF_SERVICE_UUID: DEFAULT_SERVICE_UUID,
+                CONF_CHARACTERISTIC_UUID_READ: DEFAULT_CHARACTERISTIC_UUID_READ,
+                CONF_CHARACTERISTIC_UUID_WRITE: DEFAULT_CHARACTERISTIC_UUID_WRITE,
+                CONF_NOMINAL_AH: nominal_ah,
+                "fast_poll": DEFAULT_FAST_POLL,
+                "slow_poll": DEFAULT_SLOW_POLL,
+                "xs_poll": DEFAULT_XS_POLL,
+            },
         )
 
 

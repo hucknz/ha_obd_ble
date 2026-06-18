@@ -47,6 +47,44 @@ _LOGGER = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+def _make_lbc_decoder_ze0(nominal_ah: float):
+    """Create an LBC decoder for ZE0/AZE0 that includes SOH calculation.
+    
+    Args:
+        nominal_ah: The nominal (maximum) Ah capacity of the battery.
+    
+    Returns:
+        A decoder function that returns both battery metrics and calculated SOH.
+    """
+    def decoder(messages):
+        d = messages[0].data
+        if not d:
+            return None
+
+        raw1 = int.from_bytes(d[2:6], byteorder="big", signed=False)
+        raw2 = int.from_bytes(d[8:12], byteorder="big", signed=False)
+
+        # Sign-extend the 28-bit current values
+        if raw1 & 0x8000000:
+            raw1 |= -0x100000000
+        if raw2 & 0x8000000:
+            raw2 |= -0x100000000
+
+        current_ah = int.from_bytes(d[34:38], byteorder="big") / 10000
+        soh = (current_ah / nominal_ah) * 100 if nominal_ah > 0 else None
+
+        return {
+            "state_of_charge": int.from_bytes(d[30:34], byteorder="big") / 10000,
+            "hv_battery_health": int.from_bytes(d[28:30], byteorder="big") / 102.4,
+            "hv_battery_Ah": current_ah,
+            "state_of_health": soh,
+            "hv_battery_current_1": raw1 / 1024,
+            "hv_battery_current_2": raw2 / 1024,
+            "hv_battery_voltage": int.from_bytes(d[20:22], byteorder="big") / 100,
+        }
+    return decoder
+
+
 def _lbc_decoder_ze0(messages):
     """Decode LBC response for ZE0/AZE0 generation (2010–2018 Nissan Leaf).
 
@@ -98,6 +136,43 @@ def _make_soh_decoder_ze0(nominal_ah: float):
         current_ah = int.from_bytes(d[34:38], byteorder="big") / 10000
         soh = (current_ah / nominal_ah) * 100 if nominal_ah > 0 else None
         return {"state_of_health": soh}
+    return decoder
+
+
+def _make_lbc_decoder_ze1(nominal_ah: float):
+    """Create an LBC decoder for ZE1 that includes SOH calculation.
+    
+    Args:
+        nominal_ah: The nominal (maximum) Ah capacity of the battery.
+    
+    Returns:
+        A decoder function that returns both battery metrics and calculated SOH.
+    """
+    def decoder(messages):
+        d = messages[0].data
+        if not d:
+            return None
+
+        raw1 = int.from_bytes(d[2:6], byteorder="big", signed=False)
+        raw2 = int.from_bytes(d[8:12], byteorder="big", signed=False)
+
+        if raw1 & 0x8000000:
+            raw1 |= -0x100000000
+        if raw2 & 0x8000000:
+            raw2 |= -0x100000000
+
+        current_ah = int.from_bytes(d[37:40], byteorder="big") / 10000
+        soh = (current_ah / nominal_ah) * 100 if nominal_ah > 0 else None
+
+        return {
+            "state_of_charge": int.from_bytes(d[33:36], byteorder="big") / 10000,
+            "hv_battery_health": int.from_bytes(d[30:32], byteorder="big") / 102.4,
+            "hv_battery_Ah": current_ah,
+            "state_of_health": soh,
+            "hv_battery_current_1": raw1 / 1024,
+            "hv_battery_current_2": raw2 / 1024,
+            "hv_battery_voltage": int.from_bytes(d[20:22], byteorder="big") / 100,
+        }
     return decoder
 
 
@@ -457,16 +532,18 @@ def get_extra_commands_for_generation(
     """Return a dict of OBDCommand overrides to pass to async_get_data().
 
     For ZE0/AZE0 we replace the default (ZE1) LBC decoder with one that
-    uses the correct byte offsets for these older platforms, and add a
-    state_of_health command that calculates SOH from current Ah / nominal Ah.
+    uses the correct byte offsets for these older platforms.
+    
+    For all generations, we use an LBC decoder that includes SOH calculation
+    based on the provided nominal Ah capacity.
 
     Args:
         generation: The Leaf generation (ze0, aze0, ze1, auto).
         nominal_ah: The nominal battery capacity in Ah (used for SOH calculation).
-                    Defaults to 77.5 (30 kWh).
+                    Defaults to DEFAULT_NOMINAL_AH.
 
     Returns:
-        A dict of OBDCommand overrides, or empty dict for ZE1/auto.
+        A dict of OBDCommand overrides.
     """
     from .const import DEFAULT_NOMINAL_AH  # noqa: PLC0415
 
@@ -482,58 +559,25 @@ def get_extra_commands_for_generation(
         )
         return {}
 
-    overrides = {}
+    base_lbc = leaf_commands.get("lbc")
+    if base_lbc is None:
+        _LOGGER.warning("lbc command not found in leaf_commands; skipping override")
+        return {}
 
+    # Create generation-specific LBC decoder that includes SOH calculation
     if generation in (GENERATION_ZE0, GENERATION_AZE0):
-        base_lbc = leaf_commands.get("lbc")
-        if base_lbc is None:
-            _LOGGER.warning("lbc command not found in leaf_commands; skipping override")
-            return {}
+        lbc_decoder = _make_lbc_decoder_ze0(nominal_ah)
+    else:
+        # ZE1 and AUTO both use ZE1 byte offsets
+        lbc_decoder = _make_lbc_decoder_ze1(nominal_ah)
 
-        # Override the LBC decoder for ZE0/AZE0
-        overrides["lbc"] = OBDCommand(
+    return {
+        "lbc": OBDCommand(
             "lbc",
-            "Li-ion battery controller (ZE0/AZE0 decoder)",
+            "Li-ion battery controller",
             base_lbc.command,
             base_lbc.bytes,
-            _lbc_decoder_ze0,
+            lbc_decoder,
             header=base_lbc.header,
         )
-
-        # Add a separate SOH decoder command
-        overrides["state_of_health"] = OBDCommand(
-            "state_of_health",
-            f"State of Health (nominal: {nominal_ah} Ah)",
-            base_lbc.command,
-            base_lbc.bytes,
-            _make_soh_decoder_ze0(nominal_ah),
-            header=base_lbc.header,
-        )
-
-    elif generation == GENERATION_ZE1:
-        # For ZE1, also add a SOH decoder (but keep using library's default LBC)
-        base_lbc = leaf_commands.get("lbc")
-        if base_lbc is not None:
-            overrides["state_of_health"] = OBDCommand(
-                "state_of_health",
-                f"State of Health (nominal: {nominal_ah} Ah)",
-                base_lbc.command,
-                base_lbc.bytes,
-                _make_soh_decoder_ze1(nominal_ah),
-                header=base_lbc.header,
-            )
-
-    # For AUTO mode, add SOH override using ZE1 decoder (safer default)
-    elif generation == GENERATION_AUTO:
-        base_lbc = leaf_commands.get("lbc")
-        if base_lbc is not None:
-            overrides["state_of_health"] = OBDCommand(
-                "state_of_health",
-                f"State of Health (nominal: {nominal_ah} Ah)",
-                base_lbc.command,
-                base_lbc.bytes,
-                _make_soh_decoder_ze1(nominal_ah),
-                header=base_lbc.header,
-            )
-
-    return overrides
+    }

@@ -65,11 +65,11 @@ class NissanLeafCoordinator(DataUpdateCoordinator):
 
         # Get nominal battery capacity for SOH calculation
         options = entry.options or {}
-        nominal_ah = options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH)
+        self._nominal_ah: float = options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH)
 
         # Generation-specific extra_commands (e.g. ZE0 LBC decoder override, SOH)
         self._generation_extra_commands: dict = get_extra_commands_for_generation(
-            self._generation, nominal_ah=nominal_ah
+            self._generation, nominal_ah=self._nominal_ah
         )
 
         self._options: dict = {}
@@ -86,12 +86,28 @@ class NissanLeafCoordinator(DataUpdateCoordinator):
 
     @options.setter
     def options(self, value: dict) -> None:
-        """Apply new options and recalculate poll intervals."""
+        """Apply new options and recalculate poll intervals and decoders.
+        
+        When nominal_ah (battery capacity) changes, rebuild the LBC decoder
+        so SOH calculations use the new value.
+        """
         self._options = value
         self._fast_poll = int(value.get("fast_poll", DEFAULT_FAST_POLL))
         self._slow_poll = int(value.get("slow_poll", DEFAULT_SLOW_POLL))
         self._xs_poll = int(value.get("xs_poll", DEFAULT_XS_POLL))
         self._fetch_timeout = float(value.get("fetch_timeout", DEFAULT_FETCH_TIMEOUT))
+        
+        # Rebuild decoders if nominal_ah changed
+        new_nominal_ah = value.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH)
+        if new_nominal_ah != self._nominal_ah:
+            _LOGGER.info(
+                "Battery nominal Ah changed from %.2f to %.2f — rebuilding decoders",
+                self._nominal_ah, new_nominal_ah
+            )
+            self._nominal_ah = new_nominal_ah
+            self._generation_extra_commands: dict = get_extra_commands_for_generation(
+                self._generation, nominal_ah=self._nominal_ah
+            )
 
     # ------------------------------------------------------------------
     # Persistence

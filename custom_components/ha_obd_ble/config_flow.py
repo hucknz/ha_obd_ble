@@ -38,6 +38,7 @@ from homeassistant.components.bluetooth import (
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     BATTERY_NOMINAL_AH,
@@ -199,17 +200,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.context["nominal_ah"] = nominal_ah
             return await self.async_step_configure()
 
-        battery_choices = {
-            ah: f"{size} kWh ({ah} Ah)"
+        battery_options = [
+            selector.SelectOptionDict(
+                value=ah,
+                label=f"{size} kWh ({ah} Ah)"
+            )
             for size, ah in sorted(BATTERY_NOMINAL_AH.items())
-        }
+        ]
 
         return self.async_show_form(
             step_id="battery_size",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NOMINAL_AH, default=DEFAULT_NOMINAL_AH): vol.In(
-                        battery_choices
+                    vol.Required(CONF_NOMINAL_AH, default=DEFAULT_NOMINAL_AH): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=battery_options)
                     )
                 }
             ),
@@ -272,10 +276,24 @@ class NissanLeafOptionsFlowHandler(config_entries.OptionsFlow):
             self._options.update(user_input)
             return self.async_create_entry(title="", data=self._options)
 
+        battery_options = [
+            selector.SelectOptionDict(
+                value=ah,
+                label=f"{size} kWh ({ah} Ah)"
+            )
+            for size, ah in sorted(BATTERY_NOMINAL_AH.items())
+        ]
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Required(
+                        CONF_NOMINAL_AH,
+                        default=self._options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=battery_options)
+                    ),
                     vol.Required(
                         "fast_poll",
                         default=self._options.get("fast_poll", DEFAULT_FAST_POLL),

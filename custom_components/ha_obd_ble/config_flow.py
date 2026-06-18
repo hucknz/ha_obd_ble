@@ -74,6 +74,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_devices: dict[str, BluetoothServiceInfoBleak] = {}
         self._selected_device: BluetoothServiceInfoBleak | None = None
         self._selected_generation: str = GENERATION_AUTO
+        self._selected_nominal_ah: float = DEFAULT_NOMINAL_AH
 
     @staticmethod
     @callback
@@ -195,8 +196,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Let the user select their battery size for SOH calculation."""
         if user_input is not None:
-            nominal_ah = float(user_input[CONF_NOMINAL_AH])  # Convert string back to float
-            self.context["nominal_ah"] = nominal_ah
+            self._selected_nominal_ah = float(user_input[CONF_NOMINAL_AH])
             return await self.async_step_configure()
 
         battery_choices = {
@@ -228,7 +228,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Create the config entry with defaults; UUIDs can be changed later."""
         address = self._selected_device.address
         generation = self._selected_generation
-        nominal_ah = self.context.get("nominal_ah", DEFAULT_NOMINAL_AH)
+        nominal_ah = self._selected_nominal_ah
         gen_label = GENERATION_OPTIONS.get(generation, generation)
 
         return self.async_create_entry(

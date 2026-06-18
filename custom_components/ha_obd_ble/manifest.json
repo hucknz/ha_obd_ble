@@ -1,6 +1,6 @@
 {
   "domain": "ha_obd_ble",
-  "name": "Nissan Leaf OBD BLE",
+  "name": "OBD BLE",
   "version": "1.0.0",
   "codeowners": ["@hucknz"],
   "config_flow": true,

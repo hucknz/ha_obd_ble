@@ -40,14 +40,17 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    BATTERY_NOMINAL_AH,
     BLE_LOCAL_NAMES,
     CONF_CHARACTERISTIC_UUID_READ,
     CONF_CHARACTERISTIC_UUID_WRITE,
     CONF_GENERATION,
+    CONF_NOMINAL_AH,
     CONF_SERVICE_UUID,
     DEFAULT_CHARACTERISTIC_UUID_READ,
     DEFAULT_CHARACTERISTIC_UUID_WRITE,
     DEFAULT_FAST_POLL,
+    DEFAULT_NOMINAL_AH,
     DEFAULT_SERVICE_UUID,
     DEFAULT_SLOW_POLL,
     DEFAULT_XS_POLL,
@@ -162,7 +165,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Let the user choose their Leaf platform generation."""
         if user_input is not None:
             self._selected_generation = user_input[CONF_GENERATION]
-            return await self.async_step_configure()
+            return await self.async_step_battery_size()
 
         return self.async_show_form(
             step_id="generation",
@@ -184,7 +187,39 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     # ------------------------------------------------------------------
-    # Step 3: BLE UUID configuration
+    # Step 3: battery size selection (for SOH calculation)
+    # ------------------------------------------------------------------
+
+    async def async_step_battery_size(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user select their battery size for SOH calculation."""
+        if user_input is not None:
+            nominal_ah = user_input[CONF_NOMINAL_AH]
+            self.context["nominal_ah"] = nominal_ah
+            return await self.async_step_configure()
+
+        battery_choices = {
+            ah: f"{size} kWh ({ah} Ah)"
+            for size, ah in sorted(BATTERY_NOMINAL_AH.items())
+        }
+
+        return self.async_show_form(
+            step_id="battery_size",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_NOMINAL_AH, default=DEFAULT_NOMINAL_AH): vol.In(
+                        battery_choices
+                    )
+                }
+            ),
+            description_placeholders={
+                "info": "Select your battery size so the integration can accurately calculate State of Health (SOH)"
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Step 4: BLE UUID configuration
     # ------------------------------------------------------------------
 
     async def async_step_configure(
@@ -194,6 +229,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             address = self._selected_device.address
             generation = self._selected_generation
+            nominal_ah = self.context.get("nominal_ah", DEFAULT_NOMINAL_AH)
             gen_label = GENERATION_OPTIONS.get(generation, generation)
 
             return self.async_create_entry(
@@ -214,6 +250,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_CHARACTERISTIC_UUID_WRITE,
                         DEFAULT_CHARACTERISTIC_UUID_WRITE,
                     ),
+                    CONF_NOMINAL_AH: nominal_ah,
                     "fast_poll": DEFAULT_FAST_POLL,
                     "slow_poll": DEFAULT_SLOW_POLL,
                     "xs_poll": DEFAULT_XS_POLL,

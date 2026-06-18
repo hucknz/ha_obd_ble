@@ -16,8 +16,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     CONF_GENERATION,
+    CONF_NOMINAL_AH,
     DEFAULT_FAST_POLL,
     DEFAULT_FETCH_TIMEOUT,
+    DEFAULT_NOMINAL_AH,
     DEFAULT_SLOW_POLL,
     DEFAULT_XS_POLL,
     DOMAIN,
@@ -61,9 +63,13 @@ class NissanLeafCoordinator(DataUpdateCoordinator):
             hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}"
         )
 
-        # Generation-specific extra_commands (e.g. ZE0 LBC decoder override)
+        # Get nominal battery capacity for SOH calculation
+        options = entry.options or {}
+        nominal_ah = options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH)
+
+        # Generation-specific extra_commands (e.g. ZE0 LBC decoder override, SOH)
         self._generation_extra_commands: dict = get_extra_commands_for_generation(
-            self._generation
+            self._generation, nominal_ah=nominal_ah
         )
 
         self._options: dict = {}

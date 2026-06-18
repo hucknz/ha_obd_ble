@@ -336,8 +336,9 @@ def range_remaining(messages):
 def lbc(messages):
     """Decode LBC message (ZE1 generation, 2018+).
     
-    For ZE0/AZE0 (2010-2018), the integration uses custom byte offsets
-    via the generations.py override system.
+    Returns the Health Index (Hx), not State of Health (SOH). For ZE0/AZE0 
+    (2010-2018), the integration uses custom byte offsets via the generations.py 
+    override system.
     """
     d = messages[0].data
     if len(d) == 0:

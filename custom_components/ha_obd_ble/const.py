@@ -13,6 +13,7 @@ CONF_GENERATION = "generation"
 CONF_SERVICE_UUID = "service_uuid"
 CONF_CHARACTERISTIC_UUID_READ = "characteristic_uuid_read"
 CONF_CHARACTERISTIC_UUID_WRITE = "characteristic_uuid_write"
+CONF_NOMINAL_AH = "nominal_ah"
 
 # Default BLE UUIDs (LeLink2 / OBDBLE dongle)
 DEFAULT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb"
@@ -35,6 +36,18 @@ GENERATION_OPTIONS: dict[str, str] = {
     GENERATION_ZE1: "ZE1 — 2018+ Nissan Leaf",
     GENERATION_AUTO: "Auto — all generations (recommended if unsure)",
 }
+
+# Battery nominal Ah capacity by size (used to calculate State of Health)
+# These are the approximate maximum usable capacities for each battery size.
+BATTERY_NOMINAL_AH: dict[int, float] = {
+    24: 60.6,
+    30: 77.5,
+    40: 105.6,
+    62: 167.6,
+}
+
+# Default nominal Ah if user doesn't specify (30 kWh is most common)
+DEFAULT_NOMINAL_AH = 77.5
 
 # Default polling intervals (seconds)
 DEFAULT_FAST_POLL = 10

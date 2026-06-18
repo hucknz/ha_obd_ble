@@ -282,7 +282,7 @@ _ALL_SENSORS: dict[str, SensorEntityDescription] = {
     "ambient_temp": SensorEntityDescription(
         key="ambient_temp",
         icon="mdi:thermometer",
-        name="Ambient temperature",
+        name="Battery temperature",
         native_unit_of_measurement="°C",
         suggested_display_precision=1,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -505,7 +505,7 @@ _ALL_SENSORS: dict[str, SensorEntityDescription] = {
 }
 
 # Sensors not present on ZE0 / AZE0 platforms
-_ZE0_EXCLUDED = {"e_pedal_mode"}
+_ZE0_EXCLUDED = {"e_pedal_mode", "ambient_temp"}
 
 # Map from generation identifier → ordered list of sensor keys
 GENERATION_SENSOR_KEYS: dict[str, list[str]] = {

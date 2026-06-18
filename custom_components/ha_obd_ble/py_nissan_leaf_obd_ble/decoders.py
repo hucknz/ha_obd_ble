@@ -127,9 +127,17 @@ def l1_l2_charges(messages):
 
 
 def ambient_temp(messages):
-    """Decode ambient temperature messages."""
+    """Decode battery/ambient temperature messages.
+    
+    Note: On AZE0 this reads battery temperature. The value 0xFF (87.5°C)
+    is an error/uninitialized state and should be filtered by the sensor platform.
+    """
     d = messages[0].data  # only operate on a single message
-    v = d[3] / 2 - 40
+    raw = d[3]
+    # Filter out error values (0xFF typically indicates no valid data)
+    if raw == 0xFF:
+        return {"ambient_temp": None}
+    v = raw / 2 - 40
     return {"ambient_temp": v}
 
 

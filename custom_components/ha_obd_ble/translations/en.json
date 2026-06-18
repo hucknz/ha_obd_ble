@@ -15,6 +15,13 @@
           "generation": "Leaf generation"
         }
       },
+      "battery_size": {
+        "title": "Select Battery Size",
+        "description": "Select your battery capacity so the integration can accurately calculate State of Health (SOH).",
+        "data": {
+          "nominal_ah": "Battery size"
+        }
+      },
       "configure": {
         "title": "BLE UUID Configuration",
         "description": "Leave all values at their defaults unless your OBD adapter uses non-standard GATT UUIDs (most adapters do not).",

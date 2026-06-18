@@ -195,12 +195,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Let the user select their battery size for SOH calculation."""
         if user_input is not None:
-            nominal_ah = user_input[CONF_NOMINAL_AH]
+            nominal_ah = float(user_input[CONF_NOMINAL_AH])  # Convert string back to float
             self.context["nominal_ah"] = nominal_ah
             return await self.async_step_configure()
 
         battery_choices = {
-            ah: f"{size} kWh ({ah} Ah)"
+            str(ah): f"{size} kWh ({ah} Ah)"
             for size, ah in sorted(BATTERY_NOMINAL_AH.items())
         }
 
@@ -208,7 +208,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="battery_size",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NOMINAL_AH, default=DEFAULT_NOMINAL_AH): vol.In(
+                    vol.Required(CONF_NOMINAL_AH, default=str(DEFAULT_NOMINAL_AH)): vol.In(
                         battery_choices
                     )
                 }
@@ -269,11 +269,14 @@ class NissanLeafOptionsFlowHandler(config_entries.OptionsFlow):
             self._options = dict(self.config_entry.options)
 
         if user_input is not None:
+            # Convert string battery size back to float
+            if CONF_NOMINAL_AH in user_input:
+                user_input[CONF_NOMINAL_AH] = float(user_input[CONF_NOMINAL_AH])
             self._options.update(user_input)
             return self.async_create_entry(title="", data=self._options)
 
         battery_choices = {
-            ah: f"{size} kWh ({ah} Ah)"
+            str(ah): f"{size} kWh ({ah} Ah)"
             for size, ah in sorted(BATTERY_NOMINAL_AH.items())
         }
 
@@ -283,7 +286,7 @@ class NissanLeafOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Required(
                         CONF_NOMINAL_AH,
-                        default=self._options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH),
+                        default=str(self._options.get(CONF_NOMINAL_AH, DEFAULT_NOMINAL_AH)),
                     ): vol.In(battery_choices),
                     vol.Required(
                         "fast_poll",

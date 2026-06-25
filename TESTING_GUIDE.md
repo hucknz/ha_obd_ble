@@ -1,4 +1,4 @@
-# Generic OBD BLE Integration — Testing Guide for Toyota Highlander
+# OBD BLE Integration — Testing Guide for Toyota Highlander
 
 This guide will help you test the Generic OBD BLE integration with your 2017 Toyota Highlander V6.
 
@@ -32,15 +32,15 @@ This guide will help you test the Generic OBD BLE integration with your 2017 Toy
 ## Step 2: Install the Integration
 
 ### Option A: Manual Installation (Recommended)
-1. Copy `custom_components/ha_generic_obd_ble` to your Home Assistant config directory:
+1. Copy `custom_components/ha_obd_ble` to your Home Assistant config directory:
    ```
-   ~/.homeassistant/custom_components/ha_generic_obd_ble/
+   ~/.homeassistant/custom_components/ha_obd_ble/
    ```
 2. Restart Home Assistant: Settings → System → Restart
 
 ### Option B: Using HA File Editor
 1. Install the "File Editor" add-on in Home Assistant if not already installed
-2. Create folder: `config/custom_components/ha_generic_obd_ble/`
+2. Create folder: `config/custom_components/ha_obd_ble/`
 3. Copy all files from this repository
 4. Restart Home Assistant
 
@@ -143,7 +143,7 @@ Create or edit `config/configuration.yaml`:
 logger:
   default: warning
   logs:
-    custom_components.ha_generic_obd_ble: debug
+    custom_components.ha_obd_ble: debug
     bleak: debug
     bleak_retry_connector: debug
 ```
@@ -152,10 +152,10 @@ Then check logs: Settings → System → Logs
 
 ### Expected Debug Output
 ```
-[custom_components.ha_generic_obd_ble.coordinator] Connected to OBD adapter
-[custom_components.ha_generic_obd_ble.obd_api] Querying PID 010D with command: 010D
-[custom_components.ha_generic_obd_ble.obd_api] Response for PID 010D: 41 0D 12 34
-[custom_components.ha_generic_obd_ble.obd_api] PID 010D: 4660
+[custom_components.ha_obd_ble.coordinator] Connected to OBD adapter
+[custom_components.ha_obd_ble.obd_api] Querying PID 010D with command: 010D
+[custom_components.ha_obd_ble.obd_api] Response for PID 010D: 41 0D 12 34
+[custom_components.ha_obd_ble.obd_api] PID 010D: 4660
 ```
 
 ## Step 9: Automation Testing

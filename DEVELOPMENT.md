@@ -3,7 +3,7 @@
 ## Project Structure
 
 ```
-custom_components/ha_generic_obd_ble/
+custom_components/ha_obd_ble/
 ├── __init__.py              # Integration entry point
 ├── manifest.json            # HA integration metadata
 ├── const.py                 # Constants and OBD2 PID definitions
@@ -111,7 +111,7 @@ Out of Range → Extra-Slow Poll (3600s)
 
 Cached data stored at:
 ```
-~/.homeassistant/.storage/ha_generic_obd_ble.sensor_cache.[ENTRY_ID]
+~/.homeassistant/.storage/ha_obd_ble.sensor_cache.[ENTRY_ID]
 ```
 
 **Format**:
@@ -162,7 +162,7 @@ async def query_pid(self, pid: str) -> Optional[Any]:
 ```yaml
 logger:
   logs:
-    custom_components.ha_generic_obd_ble: debug
+    custom_components.ha_obd_ble: debug
 ```
 
 ### 3. Check Log Output

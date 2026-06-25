@@ -1,7 +1,7 @@
 """Constants for Generic OBD BLE integration."""
 
-NAME = "Generic OBD BLE"
-DOMAIN = "ha_generic_obd_ble"
+NAME = "OBD BLE"
+DOMAIN = "ha_obd_ble"
 VERSION = "0.1.0"
 
 ISSUE_URL = "https://github.com/hamish/ha_obd_ble/issues"

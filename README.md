@@ -1,6 +1,6 @@
-# Generic OBD BLE — Home Assistant Custom Integration
+# OBD BLE — Home Assistant Custom Integration
 
-A Home Assistant custom integration for monitoring vehicle data via a Bluetooth Low Energy OBD2 adapter. Unlike the Nissan Leaf-specific integration, this works with any petrol or diesel vehicle that has an OBD2 port and a compatible BLE adapter.
+A Home Assistant custom integration for monitoring vehicle data via a Bluetooth Low Energy OBD2 adapter. This works with any petrol or diesel vehicle that has an OBD2 port and a compatible BLE adapter.
 
 ## Features
 
@@ -27,15 +27,15 @@ A Home Assistant custom integration for monitoring vehicle data via a Bluetooth 
 
 ### Option 1 — Manual (Recommended for Testing)
 
-1. Copy the `custom_components/ha_generic_obd_ble/` folder into your HA `config/custom_components/` directory.
+1. Copy the `custom_components/ha_obd_ble/` folder into your HA `config/custom_components/` directory.
 2. Restart Home Assistant.
-3. Go to Settings → Devices & Services → Add Integration → Generic OBD BLE.
+3. Go to Settings → Devices & Services → Add Integration → OBD BLE.
 
 ### Option 2 — HACS (When Available)
 
 1. Open HACS → Integrations → ⋮ → Custom repositories.
 2. Add `https://github.com/hamish/ha_obd_ble` with category Integration.
-3. Find Generic OBD BLE and click Download.
+3. Find OBD BLE and click Download.
 4. Restart Home Assistant.
 
 ## Setup
@@ -116,7 +116,7 @@ Add this to your `configuration.yaml`:
 logger:
   default: warning
   logs:
-    custom_components.ha_generic_obd_ble: debug
+    custom_components.ha_obd_ble: debug
 ```
 
 Then check **Settings → System → Logs** for detailed debug output.

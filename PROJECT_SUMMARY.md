@@ -1,4 +1,4 @@
-# Generic OBD BLE Integration — Project Summary
+# OBD BLE Integration — Project Summary
 
 ## ✅ Project Complete
 
@@ -7,7 +7,7 @@ I've successfully created a generic OBD2 Bluetooth Low Energy integration for Ho
 ## What Was Created
 
 ### Integration Files (11 core files)
-Located in: `/Users/hamish/GitHub/ha_obd_ble/custom_components/ha_generic_obd_ble/`
+Located in: `/Users/hamish/GitHub/ha_obd_ble/custom_components/ha_obd_ble/`
 
 | File | Purpose |
 |------|---------|
@@ -87,9 +87,9 @@ Compatible with:
 ## Installation & Testing
 
 ### Quick Start
-1. Copy `custom_components/ha_generic_obd_ble/` to your HA config
+1. Copy `custom_components/ha_obd_ble/` to your HA config
 2. Restart Home Assistant
-3. Settings → Devices & Services → Create Integration → Generic OBD BLE
+3. Settings → Devices & Services → Create Integration → OBD BLE
 4. Select your OBD adapter from dropdown
 5. (Optional) Configure BLE UUIDs if non-standard
 6. Sensors appear automatically
@@ -111,7 +111,7 @@ See **TESTING_GUIDE.md** for step-by-step verification.
 ```
 /Users/hamish/GitHub/ha_obd_ble/
 ├── custom_components/
-│   └── ha_generic_obd_ble/        [Integration directory]
+│   └── ha_obd_ble/        [Integration directory]
 │       ├── __init__.py
 │       ├── manifest.json
 │       ├── const.py

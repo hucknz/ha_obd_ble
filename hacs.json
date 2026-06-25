@@ -1,6 +1,6 @@
 {
-  "name": "Generic OBD BLE",
+  "name": "OBD BLE",
   "render_readme": true,
   "homeassistant": "2023.6.0",
-  "domain": "ha_generic_obd_ble"
+  "domain": "ha_obd_ble"
 }

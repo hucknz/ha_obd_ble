@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Select OBD Adapter",
-        "description": "Choose the OBD2 Bluetooth Low Energy adapter to connect to.\n\n{num_devices} device(s) found.",
+        "description": "Choose the OBD2 Bluetooth Low Energy adapter to connect to.\n\nIf your device doesn't appear: ensure it's powered on and within Bluetooth range. You can also enter the MAC address manually.\n\nFor JFIND adapters, you may need to configure the BLE UUIDs after selection.",
         "data": {
-          "address": "Device"
+          "address": "Device MAC address (e.g., 66:1E:11:0E:0D:CE)"
         }
       },
       "bluetooth": {
@@ -13,7 +13,7 @@
       },
       "configure": {
         "title": "OBD Adapter Settings",
-        "description": "Configure the BLE GATT UUIDs for {name}.\n\nLeave these at default values unless you are using a non-standard OBD adapter.",
+        "description": "Configure the BLE GATT UUIDs for {name}.\n\nLeave at defaults for standard ELM327/LeLink2 adapters.\nFor JFIND adapters, use:\n• Service: 0000fff0-0000-1000-8000-00805f9b34fb\n• Read: 0000fff1-0000-1000-8000-00805f9b34fb\n• Write: 0000fff1-0000-1000-8000-00805f9b34fb",
         "data": {
           "service_uuid": "BLE Service UUID",
           "characteristic_uuid_read": "BLE Read Characteristic UUID",

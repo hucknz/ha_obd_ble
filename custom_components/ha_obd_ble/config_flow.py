@@ -104,23 +104,37 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 or info.address in self._discovered_devices
             ):
                 continue
-            if any(info.name.startswith(n) for n in BLE_LOCAL_NAMES):
+            # Accept both name-matched devices and any device with OBD-like UUIDs
+            if any(info.name.startswith(n) for n in BLE_LOCAL_NAMES) or (
+                info.service_uuids and any(
+                    uuid.startswith("0000ff") for uuid in info.service_uuids
+                )
+            ):
                 self._discovered_devices[info.address] = info
 
-        if not self._discovered_devices:
-            return self.async_abort(reason="no_unconfigured_devices")
-
-        device_choices = {
-            addr: f"{info.name} ({addr})"
-            for addr, info in self._discovered_devices.items()
-        }
-
+        if self._discovered_devices:
+            device_choices = {
+                addr: f"{info.name} ({addr})"
+                for addr, info in self._discovered_devices.items()
+            }
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In(device_choices)}),
+                errors=errors,
+                description_placeholders={
+                    "num_devices": str(len(device_choices)),
+                },
+            )
+        
+        # No devices found via discovery - allow manual entry
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In(device_choices)}),
+            data_schema=vol.Schema({
+                vol.Required(CONF_ADDRESS): str,
+            }),
             errors=errors,
             description_placeholders={
-                "num_devices": str(len(device_choices)),
+                "num_devices": "0",
             },
         )
 

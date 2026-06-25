@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select OBD Adapter",
+        "description": "Choose the OBD2 Bluetooth Low Energy adapter to connect to.\n\nIf your device doesn't appear: ensure it's powered on and within Bluetooth range. You can also enter the MAC address manually.\n\nFor JFIND adapters, you may need to configure the BLE UUIDs after selection.",
+        "data": {
+          "address": "Device MAC address (e.g., 66:1E:11:0E:0D:CE)"
+        }
+      },
+      "bluetooth": {
+        "title": "OBD Adapter Detected"
+      },
+      "configure": {
+        "title": "OBD Adapter Settings",
+        "description": "Configure the BLE GATT UUIDs for {name}.\n\nLeave at defaults for standard ELM327/LeLink2 adapters.\nFor JFIND adapters, use:\n• Service: 0000fff0-0000-1000-8000-00805f9b34fb\n• Read: 0000fff1-0000-1000-8000-00805f9b34fb\n• Write: 0000fff1-0000-1000-8000-00805f9b34fb",
+        "data": {
+          "service_uuid": "BLE Service UUID",
+          "characteristic_uuid_read": "BLE Read Characteristic UUID",
+          "characteristic_uuid_write": "BLE Write Characteristic UUID"
+        }
+      }
+    },
+    "error": {
+      "no_unconfigured_devices": "No unconfigured OBD adapters found. Ensure the adapter is powered on and within Bluetooth range.",
+      "device_not_found": "Device not found"
+    },
+    "abort": {
+      "already_configured": "OBD adapter is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Generic OBD BLE",
+        "description": "Adjust polling intervals and BLE settings.",
+        "data": {
+          "fast_poll": "Fast poll interval (seconds) - when vehicle is on",
+          "slow_poll": "Slow poll interval (seconds) - when vehicle is off but in range",
+          "xs_poll": "Extra-slow poll interval (seconds) - when out of range",
+          "service_uuid": "BLE Service UUID",
+          "characteristic_uuid_read": "BLE Read Characteristic UUID",
+          "characteristic_uuid_write": "BLE Write Characteristic UUID"
+        }
+      }
+    }
+  }
+}

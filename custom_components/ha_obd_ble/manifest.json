@@ -1,6 +1,6 @@
 {
-  "domain": "ha_generic_obd_ble",
-  "name": "Generic OBD BLE",
+  "domain": "ha_obd_ble",
+  "name": "OBD BLE",
   "version": "0.1.0",
   "codeowners": [],
   "config_flow": true,

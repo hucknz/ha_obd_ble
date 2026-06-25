@@ -1,220 +1,164 @@
-# Nissan Leaf OBD BLE — Home Assistant Custom Integration
+# Generic OBD BLE — Home Assistant Custom Integration
 
-A Home Assistant custom integration for monitoring Nissan Leaf battery and
-vehicle data via a Bluetooth Low Energy ELM327 OBD-II adapter (e.g. LeLink2).
+A Home Assistant custom integration for monitoring vehicle data via a Bluetooth Low Energy OBD2 adapter. Unlike the Nissan Leaf-specific integration, this works with any petrol or diesel vehicle that has an OBD2 port and a compatible BLE adapter.
 
-This integration is a fork of
-[pbutterworth/nissan-leaf-obd-ble](https://github.com/pbutterworth/nissan-leaf-obd-ble)
-with the following additions:
+## Features
 
-| Feature | Original | This fork |
-|---|---|---|
-| OBD adapter selection | Manual MAC entry | **Dropdown of discovered adapters** |
-| Generation support | Manual overrides.yaml | **Built-in per-generation profiles** |
-| ZE0/AZE0 odometer | Active query (unreliable) | **Passive CAN broadcast (0x5C5)** |
-| ZE0/AZE0 battery decoder | ZE1 offsets (incorrect) | **Correct ZE0 byte offsets** |
-| Sensor list | Fixed (all sensors always created) | **Trimmed to generation-supported set** |
-| Data persistence | Lost on HA restart | **Persisted to HA storage** |
+- **Standard OBD2 PIDs**: Support for all standard OBD2 parameters
+- **Odometer Reading**: Primary goal — track total distance traveled
+- **Data Persistence**: Sensor values persist across Home Assistant restarts
+- **Flexible Polling**: Configurable polling intervals for on/off/out-of-range states
+- **Device Detection**: Automatic polling trigger when BLE device detected (vehicle running)
+- **BLE Adapter Agnostic**: Works with LeLink2, generic ELM327 adapters, and others
 
----
+## Supported Hardware
 
-## Supported hardware
+- **LeLink2 ELM327 BLE OBD-II adapter** (tested)
+- Any ELM327 BLE OBD-II adapter advertising as OBDBLE
+- ESPHome Bluetooth Proxy setups
 
-| Item | Notes |
-|---|---|
-| LeLink2 ELM327 BLE OBD-II adapter | Primary tested hardware |
-| Any ELM327 BLE OBD-II adapter advertising as `OBDBLE` | Should work; UUIDs configurable |
-| ESPHome Bluetooth Proxy (e.g. GL-iNet GL-S10) | Recommended for garage setups |
+## Supported Vehicles
 
-## Supported vehicles
-
-| Generation | Years | Notes |
-|---|---|---|
-| ZE0 | 2010–2017 | Odometer via passive CAN broadcast; ZE0 battery decoder |
-| AZE0 | 2017–2018 | Same as ZE0 profile |
-| ZE1 | 2018+ | Active KWP2000 odometer; includes e-Pedal sensor |
-| Auto | All | All sensors enabled; uses ZE1 decoders (ZE0/AZE0 owners should pick their generation for accurate battery data) |
-
----
-
-## Prerequisites
-
-### Python library
-
-This integration depends on a **forked version** of the upstream Python
-library that adds generation profiles and passive CAN monitoring:
-
-```
-https://github.com/hucknz/py-nissan-leaf-obd-ble
-```
-
-Home Assistant will attempt to install it automatically from the git URL in
-`manifest.json`.  If auto-install fails (some HA setups restrict this), install
-it manually in the HA Python environment:
-
-```bash
-# SSH into your HA host
-pip install "git+https://github.com/hucknz/py-nissan-leaf-obd-ble@main"
-```
-
-Then restart Home Assistant.
-
----
+- **Any vehicle with OBD2 port** (2001+ gasoline, 2004+ diesel)
+- Primary testing: 2017 Toyota Highlander V6
+- Should work with all standard OBD2-compliant vehicles
 
 ## Installation
 
-### Option 1 — HACS (Custom Repository)
+### Option 1 — Manual (Recommended for Testing)
+
+1. Copy the `custom_components/ha_generic_obd_ble/` folder into your HA `config/custom_components/` directory.
+2. Restart Home Assistant.
+3. Go to Settings → Devices & Services → Add Integration → Generic OBD BLE.
+
+### Option 2 — HACS (When Available)
 
 1. Open HACS → Integrations → ⋮ → Custom repositories.
-2. Add `https://github.com/hucknz/ha_nissan_leaf_obd_ble` with category **Integration**.
-3. Find *Nissan Leaf OBD BLE* and click **Download**.
+2. Add `https://github.com/hamish/ha_obd_ble` with category Integration.
+3. Find Generic OBD BLE and click Download.
 4. Restart Home Assistant.
-
-### Option 2 — Manual
-
-1. Copy the `custom_components/ha_nissan_leaf_obd_ble/` folder into your HA
-   `config/custom_components/` directory.
-2. Restart Home Assistant.
-
----
 
 ## Setup
 
-1. Plug the OBD adapter into the Nissan Leaf's OBD-II port and turn on the
-   ignition (or accessory mode).
-2. In Home Assistant: **Settings → Devices & Services → Add Integration →
-   Nissan Leaf OBD BLE**.
-3. **Step 1 — OBD adapter**: Select your adapter from the dropdown.  If it
-   doesn't appear, check that it's powered and within BLE range.
-4. **Step 2 — Leaf generation**: Select your Leaf platform.
-
-   | Label | Choose if… |
-   |---|---|
-   | ZE0 — 2010–2017 | Your Leaf is a pre-facelift (original) model |
-   | AZE0 — 2017–2018 | Your Leaf is the 2017 or 2018 refresh |
-   | ZE1 — 2018+ | Your Leaf is the second-generation (40 kWh / 62 kWh) |
-   | Auto | You're unsure — all sensors enabled, ZE1 decoders used |
-
-5. **Step 3 — BLE UUIDs**: Leave at defaults unless your adapter uses
-   non-standard GATT UUIDs.
-6. Click **Submit**.  HA will create the device and all generation-appropriate
-   sensor entities.
-
----
+1. Plug the OBD adapter into your vehicle's OBD-II port.
+2. Turn on the vehicle ignition or ensure the adapter is powered.
+3. In Home Assistant: Settings → Devices & Services → Create Integration → Generic OBD BLE.
+4. **Step 1** — Select your OBD adapter from the dropdown.
+5. **Step 2** — (Optional) Configure BLE UUIDs if using a non-standard adapter.
+6. Click Submit. HA will create the device and sensor entities.
 
 ## Sensors
 
-### All generations
+The integration provides the following sensors (availability depends on your vehicle):
 
-| Entity | Unit | Description |
-|---|---|---|
-| `sensor.nissan_leaf_state_of_charge` | % | Battery charge level |
-| `sensor.nissan_leaf_hv_battery_health` | % | Battery state of health |
-| `sensor.nissan_leaf_hv_battery_capacity` | Ah | Battery capacity |
-| `sensor.nissan_leaf_hv_battery_voltage` | V | HV battery pack voltage |
-| `sensor.nissan_leaf_hv_battery_current_1` | A | Pack current (channel 1) |
-| `sensor.nissan_leaf_hv_battery_current_2` | A | Pack current (channel 2) |
-| `sensor.nissan_leaf_odometer` | km | Total distance travelled |
-| `sensor.nissan_leaf_range_remaining` | km | Estimated remaining range |
-| `sensor.nissan_leaf_speed` | km/h | Vehicle speed |
-| `sensor.nissan_leaf_motor_power` | W | Traction motor power |
-| `sensor.nissan_leaf_gear_position` | — | Park / Reverse / Neutral / Drive / Eco |
-| `sensor.nissan_leaf_charge_mode` | — | Not charging / L1 / L2 / L3 |
-| `sensor.nissan_leaf_plug_state` | — | Not plugged / Partial / Plugged |
-| `sensor.nissan_leaf_rpm` | RPM | Motor speed |
-| `sensor.nissan_leaf_ambient_temp` | °C | Outside air temperature |
-| `sensor.nissan_leaf_bat_12v_voltage` | V | 12V auxiliary battery voltage |
-| `sensor.nissan_leaf_bat_12v_current` | A | 12V auxiliary battery current |
-| `sensor.nissan_leaf_quick_charges` | — | Number of quick (CHAdeMO) charges |
-| `sensor.nissan_leaf_l1_l2_charges` | — | Number of L1/L2 charges |
-| `sensor.nissan_leaf_ac_power` | W | Climate system power |
-| `sensor.nissan_leaf_ac_on` | — | Climate on/off |
-| `sensor.nissan_leaf_estimated_ac_power` | W | Estimated climate draw |
-| `sensor.nissan_leaf_estimated_ptc_power` | W | Estimated PTC heater draw |
-| `sensor.nissan_leaf_aux_power` | W | Auxiliary equipment power |
-| `sensor.nissan_leaf_obc_out_power` | W | On-board charger output |
-| `sensor.nissan_leaf_eco_mode` | — | ECO mode active |
-| `sensor.nissan_leaf_rear_heater` | — | Rear window heater active |
-| `sensor.nissan_leaf_power_switch` | — | Power switch status |
-| `sensor.nissan_leaf_tp_fr` | kPa | Tyre pressure — front right |
-| `sensor.nissan_leaf_tp_fl` | kPa | Tyre pressure — front left |
-| `sensor.nissan_leaf_tp_rr` | kPa | Tyre pressure — rear right |
-| `sensor.nissan_leaf_tp_rl` | kPa | Tyre pressure — rear left |
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Odometer** | km | Total distance traveled ⭐ |
+| **Engine RPM** | rpm | Current engine speed |
+| **Coolant Temperature** | °C | Engine coolant temperature |
+| **Fuel Tank Level** | % | Remaining fuel |
+| **Fuel Pressure** | kPa | Fuel system pressure |
+| **Intake Manifold Pressure** | kPa | Intake manifold absolute pressure |
+| **Short Term Fuel Trim** | % | Fuel trim adjustment |
+| **Fuel Injection Timing** | ° | Injection timing |
+| **EVAP System Pressure** | Pa | Evaporative emissions pressure |
+| **Barometric Pressure** | kPa | Atmospheric pressure |
 
-### ZE1 only
-
-| Entity | Description |
-|---|---|
-| `sensor.nissan_leaf_e_pedal_mode` | e-Pedal mode active |
-
----
-
-## Notes on ZE0/AZE0 battery data accuracy
-
-The battery decoder byte offsets for ZE0/AZE0 (`state_of_charge`,
-`hv_battery_health`, `hv_battery_Ah`) are based on community research and
-testing on a 2016 Nissan Leaf.  They have not been exhaustively verified across
-all ZE0 and AZE0 vehicles.  If you notice incorrect battery figures, please
-open an issue with your raw LBC data.
-
----
-
-## Configuration options
+## Configuration Options
 
 After setup, click **Configure** on the integration card to adjust:
 
-| Option | Default | Description |
-|---|---|---|
-| Fast poll interval | 10 s | Polling rate when the car is on and in range |
-| Slow poll interval | 300 s | Polling rate when in range but car is off |
-| Extra-slow poll interval | 3600 s | Polling rate when out of BLE range |
-| BLE service UUID | `0000ffe0-…` | GATT service UUID for the adapter |
-| BLE read characteristic UUID | `0000ffe1-…` | Read characteristic UUID |
-| BLE write characteristic UUID | `0000ffe1-…` | Write characteristic UUID |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Fast poll interval | 10 s | When vehicle is on and in range |
+| Slow poll interval | 300 s | When in range but vehicle is off |
+| Extra-slow poll interval | 3600 s | When out of BLE range |
+| BLE Service UUID | 0000ffe0-… | GATT service UUID |
+| BLE Read Characteristic UUID | 0000ffe1-… | Read characteristic UUID |
+| BLE Write Characteristic UUID | 0000ffe1-… | Write characteristic UUID |
 
----
+## Data Persistence
 
-## Data persistence
+Sensor values are automatically saved to HA's `.storage/` directory after each successful poll. After a Home Assistant restart, sensors immediately display their last known values — no need to drive the vehicle home first.
 
-Sensor values are saved to HA's `.storage/` directory after each successful
-poll.  After a Home Assistant restart, all sensors immediately display their
-last known values — no need to drive the car home first.
+## Polling Strategy
 
----
+The integration supports two polling modes:
+
+1. **Device Detection** (Preferred): Polls faster when the OBD adapter is detected via Bluetooth (vehicle is running and within range).
+2. **Time-Based** (Fallback): Uses configured polling intervals when device detection is unavailable.
 
 ## Troubleshooting
 
-**No adapters appear in the dropdown**
-: Ensure the OBD adapter is plugged in, the ignition is on, and the adapter
-is within Bluetooth range of your HA host or a Bluetooth proxy.  Check
-*Settings → Devices & Services → Bluetooth* to verify HA can see the adapter.
+### No adapters appear in the dropdown
+- Ensure the OBD adapter is plugged into the vehicle's OBD-II port
+- Turn on the vehicle ignition or accessory mode
+- Check that the adapter is within Bluetooth range
+- Verify in Settings → Devices & Services → Bluetooth that HA can see the adapter
+- Try power-cycling the adapter
 
-**Sensors stay at last known value indefinitely**
-: This is the persistence feature working as designed.  Values update the
-next time the car is in range and the ignition is on.
+### Sensors stay at last known value indefinitely
+- This is the persistence feature working as designed
+- Values update the next time the vehicle is in range with ignition on
+- Check the coordinator's last refresh time in Settings → Devices & Services
 
-**Incorrect battery / SoC values on a ZE0 or AZE0**
-: Ensure you selected the correct generation during setup.  If you used
-*Auto*, re-add the integration and select *ZE0* or *AZE0* explicitly.
+### Specific sensors not updating
+- Not all vehicles support all OBD2 PIDs
+- Some sensors may be vehicle-specific
+- Check your vehicle's OBD2 compatibility
+- Enable debug logging to see which PIDs are responding
 
-**Enable debug logging**
+### Enable Debug Logging
+
+Add this to your `configuration.yaml`:
+
 ```yaml
-# configuration.yaml
 logger:
   default: warning
   logs:
-    custom_components.ha_nissan_leaf_obd_ble: debug
+    custom_components.ha_generic_obd_ble: debug
 ```
 
----
+Then check **Settings → System → Logs** for detailed debug output.
 
-## Credits
+## OBD2 PID Reference
 
-- [pbutterworth/nissan-leaf-obd-ble](https://github.com/pbutterworth/nissan-leaf-obd-ble) — original integration
-- [pbutterworth/py-nissan-leaf-obd-ble](https://github.com/pbutterworth/py-nissan-leaf-obd-ble) — upstream Python library
-- [hucknz/py-nissan-leaf-obd-ble](https://github.com/hucknz/py-nissan-leaf-obd-ble) — forked library with ZE0 support and generation profiles
-- [HA Community thread](https://community.home-assistant.io/t/custom-component-nissan-leaf-via-lelink-2-elm327-ble/561961)
+Common OBD2 PIDs supported:
+
+| PID | Description | Units |
+|-----|-------------|-------|
+| 010D | Odometer (distance since codes cleared) | km |
+| 010C | Engine RPM | rpm |
+| 0105 | Engine Coolant Temperature | °C |
+| 0114 | Fuel Tank Level | % |
+| 0110 | Fuel Pressure | kPa |
+| 010F | Intake Manifold Absolute Pressure | kPa |
+| 0106 | Short-Term Fuel Trim Bank 1 | % |
+| 0120 | Fuel Injection Timing | ° |
+| 0132 | Evaporative System Vapor Pressure | Pa |
+| 0133 | Barometric Pressure | kPa |
+
+## Development / Testing
+
+To test with your 2017 Toyota Highlander V6:
+
+1. Install the integration following the Manual Installation option above
+2. Connect the OBD adapter to the Highlander's OBD-II port (usually under the steering wheel)
+3. Turn on ignition and follow setup steps
+4. Check which sensors report values and which don't (vehicle-specific)
+5. Enable debug logging and check logs for detailed communication
+6. Report any issues with specific PIDs or vehicles on GitHub
+
+## Contributing
+
+Found a bug or want to improve the integration? Please open an issue on GitHub.
 
 ## License
 
-GPL-2.0-or-later (inherited from python-OBD lineage).
+GPL-2.0-or-later (inherited from python-OBD lineage)
+
+## Credits
+
+- Based on [hucknz/ha_nissan_leaf_obd_ble](https://github.com/hucknz/ha_nissan_leaf_obd_ble)
+- ELM327 protocol implementation
+- OBD2 specification reference

@@ -1,4 +1,4 @@
-"""Sensor platform for Nissan Leaf OBD BLE (ha_nissan_leaf_obd_ble)."""
+"""Sensor platform for Generic OBD BLE."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_GENERATION, DOMAIN, GENERATION_AUTO, NAME
-from .entity import NissanLeafObdBleEntity
-from .generations import get_sensors_for_generation
+from .const import DOMAIN, NAME
+from .entity import GenericObdBleEntity
+from .sensors import SENSOR_DESCRIPTIONS
 
 
 async def async_setup_entry(
@@ -18,18 +18,18 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create sensor entities for the configured generation."""
+    """Set up sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    generation = entry.data.get(CONF_GENERATION, GENERATION_AUTO)
 
-    descriptions = get_sensors_for_generation(generation)
+    # Create a sensor for each OBD PID
     async_add_entities(
-        NissanLeafSensor(coordinator, entry, desc) for desc in descriptions
+        GenericObdBleSensor(coordinator, entry, desc)
+        for desc in SENSOR_DESCRIPTIONS
     )
 
 
-class NissanLeafSensor(NissanLeafObdBleEntity, SensorEntity):
-    """A single OBD sensor entity for the Nissan Leaf."""
+class GenericObdBleSensor(GenericObdBleEntity, SensorEntity):
+    """A single OBD sensor entity."""
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class NissanLeafSensor(NissanLeafObdBleEntity, SensorEntity):
         config_entry: ConfigEntry,
         description: SensorEntityDescription,
     ) -> None:
-        """Initialise the sensor."""
+        """Initialize the sensor."""
         super().__init__(coordinator, config_entry)
         self.entity_description = description
         self._attr_name = f"{NAME} {description.name}"

@@ -1,4 +1,4 @@
-"""Nissan Leaf OBD BLE — Home Assistant custom integration (ha_obd_ble).
+"""Nissan Leaf OBD BLE — Home Assistant custom integration (ha_nissan_leaf_obd_ble).
 
 Sets up one coordinator per config entry (one per OBD adapter / Leaf),
 registers a Bluetooth callback so new polls are triggered immediately when
@@ -21,8 +21,10 @@ from homeassistant.helpers.typing import ConfigType
 
 from .py_nissan_leaf_obd_ble import NissanLeafObdBleApiClient
 
-from .const import DOMAIN, STARTUP_MESSAGE
+from .const import DOMAIN, STARTUP_MESSAGE, VERSION
 from .coordinator import NissanLeafCoordinator
+
+__version__ = VERSION
 
 PLATFORMS = [Platform.SENSOR]
 
@@ -35,7 +37,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up an ha_obd_ble config entry."""
+    """Set up an ha_nissan_leaf_obd_ble config entry."""
     if hass.data.get(DOMAIN) is None:
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.info(STARTUP_MESSAGE)

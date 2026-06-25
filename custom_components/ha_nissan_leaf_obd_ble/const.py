@@ -1,10 +1,10 @@
-"""Constants for Nissan Leaf OBD BLE (ha_obd_ble)."""
+"""Constants for Nissan Leaf OBD BLE (ha_nissan_leaf_obd_ble)."""
 
 NAME = "Nissan Leaf OBD BLE"
-DOMAIN = "ha_obd_ble"
-VERSION = "1.0.0"
+DOMAIN = "ha_nissan_leaf_obd_ble"
+VERSION = "1.0.1"
 
-ISSUE_URL = "https://github.com/hucknz/ha_obd_ble/issues"
+ISSUE_URL = "https://github.com/hucknz/ha_nissan_leaf_obd_ble/issues"
 
 # Configuration keys — stored in config entry DATA (require re-adding to change)
 CONF_GENERATION = "generation"

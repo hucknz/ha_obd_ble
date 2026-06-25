@@ -7,7 +7,7 @@ from .const import DOMAIN, NAME, VERSION
 
 
 class NissanLeafObdBleEntity(CoordinatorEntity):
-    """Shared base for all ha_obd_ble entities."""
+    """Shared base for all ha_nissan_leaf_obd_ble entities."""
 
     def __init__(self, coordinator, config_entry) -> None:
         """Initialise."""

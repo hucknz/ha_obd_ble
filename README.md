@@ -66,13 +66,13 @@ Then restart Home Assistant.
 ### Option 1 — HACS (Custom Repository)
 
 1. Open HACS → Integrations → ⋮ → Custom repositories.
-2. Add `https://github.com/hucknz/ha_obd_ble` with category **Integration**.
+2. Add `https://github.com/hucknz/ha_nissan_leaf_obd_ble` with category **Integration**.
 3. Find *Nissan Leaf OBD BLE* and click **Download**.
 4. Restart Home Assistant.
 
 ### Option 2 — Manual
 
-1. Copy the `custom_components/ha_obd_ble/` folder into your HA
+1. Copy the `custom_components/ha_nissan_leaf_obd_ble/` folder into your HA
    `config/custom_components/` directory.
 2. Restart Home Assistant.
 
@@ -203,7 +203,7 @@ next time the car is in range and the ignition is on.
 logger:
   default: warning
   logs:
-    custom_components.ha_obd_ble: debug
+    custom_components.ha_nissan_leaf_obd_ble: debug
 ```
 
 ---

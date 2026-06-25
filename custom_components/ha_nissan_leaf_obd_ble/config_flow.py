@@ -1,4 +1,4 @@
-"""Config flow for Nissan Leaf OBD BLE (ha_obd_ble).
+"""Config flow for Nissan Leaf OBD BLE (ha_nissan_leaf_obd_ble).
 
 Setup wizard steps
 ------------------
@@ -63,7 +63,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Multi-step config flow for ha_obd_ble."""
+    """Multi-step config flow for ha_nissan_leaf_obd_ble."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL

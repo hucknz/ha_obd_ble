@@ -1,4 +1,4 @@
-"""Sensor platform for Nissan Leaf OBD BLE (ha_obd_ble)."""
+"""Sensor platform for Nissan Leaf OBD BLE (ha_nissan_leaf_obd_ble)."""
 
 from __future__ import annotations
 

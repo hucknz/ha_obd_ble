@@ -12,9 +12,10 @@ CONF_CHARACTERISTIC_UUID_READ = "characteristic_uuid_read"
 CONF_CHARACTERISTIC_UUID_WRITE = "characteristic_uuid_write"
 
 # Default BLE UUIDs (ELM327 / LeLink2 / OBDBLE dongle)
-DEFAULT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb"
-DEFAULT_CHARACTERISTIC_UUID_READ = "0000ffe1-0000-1000-8000-00805f9b34fb"
-DEFAULT_CHARACTERISTIC_UUID_WRITE = "0000ffe1-0000-1000-8000-00805f9b34fb"
+DEFAULT_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb"
+DEFAULT_CHARACTERISTIC_UUID_READ = "0000fff1-0000-1000-8000-00805f9b34fb"
+DEFAULT_CHARACTERISTIC_UUID_WRITE = "0000fff2-0000-1000-8000-00805f9b34fb"
+LEGACY_CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
 
 # Adapter-specific UUIDs (for manual configuration if auto-detection fails)
 # JFIND JF327 / JFIND adapters
@@ -26,10 +27,11 @@ JFIND_CHARACTERISTIC_UUID_WRITE = "0000fff1-0000-1000-8000-00805f9b34fb"
 # Supports: OBDBLE/LeLink2/ELM327 variants and JFIND OBD adapters
 BLE_LOCAL_NAMES = {"OBDBLE", "OBD-BLE", "OBD BLE", "LeLink", "LeLink2", "ELM327", "JFIND"}
 
-# Standard OBD2 PIDs (Mode 01) for generic vehicles
+# Standard OBD2 PIDs (Mode 01) plus Toyota-specific odometer data
 # Format: (PID_HEX, NAME, UNIT, DEVICE_CLASS, STATE_CLASS)
 OBD2_PIDS = {
-    "010D": ("Odometer", "km", "distance", "total_increasing"),
+    "010D": ("Vehicle Speed", "km/h", "speed", "measurement"),
+    "220103": ("Odometer", "km", "distance", "total_increasing"),
     "010C": ("RPM", "rpm", None, "measurement"),
     "0105": ("Coolant Temperature", "°C", "temperature", "measurement"),
     "0106": ("Short Term Fuel Trim Bank 1", "%", None, "measurement"),
@@ -42,7 +44,7 @@ OBD2_PIDS = {
 }
 
 # Core PIDs to always query (others are optional)
-REQUIRED_PIDS = ["010D", "010C"]  # Odometer and RPM are most important
+REQUIRED_PIDS = ["010D", "010C", "220103"]
 
 # Default polling intervals (seconds)
 DEFAULT_FAST_POLL = 10      # When vehicle is on

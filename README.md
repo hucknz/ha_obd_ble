@@ -53,7 +53,8 @@ The integration provides the following sensors (availability depends on your veh
 
 | Sensor | Unit | Description |
 |--------|------|-------------|
-| **Odometer** | km | Total distance traveled ⭐ |
+| **Odometer** | km | Toyota-specific total distance reading ⭐ |
+| **Vehicle Speed** | km/h | Standard OBD-II vehicle speed |
 | **Engine RPM** | rpm | Current engine speed |
 | **Coolant Temperature** | °C | Engine coolant temperature |
 | **Fuel Tank Level** | % | Remaining fuel |
@@ -73,9 +74,9 @@ After setup, click **Configure** on the integration card to adjust:
 | Fast poll interval | 10 s | When vehicle is on and in range |
 | Slow poll interval | 300 s | When in range but vehicle is off |
 | Extra-slow poll interval | 3600 s | When out of BLE range |
-| BLE Service UUID | 0000ffe0-… | GATT service UUID |
-| BLE Read Characteristic UUID | 0000ffe1-… | Read characteristic UUID |
-| BLE Write Characteristic UUID | 0000ffe1-… | Write characteristic UUID |
+| BLE Service UUID | 0000fff0-… | GATT service UUID |
+| BLE Read Characteristic UUID | 0000fff1-… | Read characteristic UUID |
+| BLE Write Characteristic UUID | 0000fff2-… | Write characteristic UUID |
 
 ## Data Persistence
 
@@ -127,7 +128,7 @@ Common OBD2 PIDs supported:
 
 | PID | Description | Units |
 |-----|-------------|-------|
-| 010D | Odometer (distance since codes cleared) | km |
+| 010D | Vehicle speed | km/h |
 | 010C | Engine RPM | rpm |
 | 0105 | Engine Coolant Temperature | °C |
 | 0114 | Fuel Tank Level | % |
@@ -137,6 +138,11 @@ Common OBD2 PIDs supported:
 | 0120 | Fuel Injection Timing | ° |
 | 0132 | Evaporative System Vapor Pressure | Pa |
 | 0133 | Barometric Pressure | kPa |
+
+The odometer in this integration is currently supported for the Toyota protocol
+observed in the supplied capture. It queries Toyota data identifier `220103`
+using CAN header `700`; this is not a standard OBD-II PID and may not work on
+other Toyota models.
 
 ## Development / Testing
 

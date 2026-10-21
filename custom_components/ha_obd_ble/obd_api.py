@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any, Optional
 
 from bleak import BleakClient, BleakError
@@ -18,13 +19,15 @@ from .const import (
     DEFAULT_CHARACTERISTIC_UUID_READ,
     DEFAULT_CHARACTERISTIC_UUID_WRITE,
     DEFAULT_SERVICE_UUID,
+    LEGACY_CHARACTERISTIC_UUID,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 # OBD2 Standard Commands
 OBD_COMMANDS = {
-    "010D": {"name": "Odometer", "format": "distance"},  # Kilometers since codes cleared
+    "010D": {"name": "Vehicle Speed", "format": "speed"},
+    "220103": {"name": "Toyota Odometer", "format": "distance"},
     "010C": {"name": "RPM", "format": "rpm"},           # Engine RPM
     "0105": {"name": "Coolant Temp", "format": "temp"}, # Coolant temperature
     "0114": {"name": "Fuel Level", "format": "percent"}, # Fuel tank level
@@ -59,6 +62,7 @@ class GenericObdApi:
 
         self._read_buffer = bytearray()
         self._response_event = asyncio.Event()
+        self._command_lock = asyncio.Lock()
 
     async def connect(self) -> bool:
         """Connect to the OBD adapter."""
@@ -70,18 +74,54 @@ class GenericObdApi:
             self._client = BleakClient(self._address)
             await self._client.connect()
 
-            # Set up notification handler for read characteristic
-            await self._client.start_notify(
-                self._char_uuid_read, self._notification_handler
-            )
+            configured_read = self._char_uuid_read
+            try:
+                await self._client.start_notify(
+                    configured_read, self._notification_handler
+                )
+            except BleakError as initial_error:
+                fallbacks = (
+                    (DEFAULT_CHARACTERISTIC_UUID_READ, DEFAULT_CHARACTERISTIC_UUID_WRITE),
+                    (LEGACY_CHARACTERISTIC_UUID, LEGACY_CHARACTERISTIC_UUID),
+                )
+                last_error = initial_error
+                for fallback_read, fallback_write in fallbacks:
+                    if fallback_read.lower() == configured_read.lower():
+                        continue
+                    try:
+                        await self._client.start_notify(
+                            fallback_read, self._notification_handler
+                        )
+                    except BleakError as err:
+                        last_error = err
+                        continue
+
+                    _LOGGER.warning(
+                        "Configured read characteristic %s unavailable; using %s",
+                        configured_read,
+                        fallback_read,
+                    )
+                    if self._char_uuid_write.lower() == configured_read.lower():
+                        self._char_uuid_write = fallback_write
+                    self._char_uuid_read = fallback_read
+                    break
+                else:
+                    raise last_error
 
             self._connected = True
+            await self._initialize_adapter()
             _LOGGER.info("Connected to OBD adapter %s", self._address)
             return True
 
         except BleakError as err:
             _LOGGER.error("Failed to connect to OBD adapter: %s", err)
             self._connected = False
+            return False
+        except asyncio.TimeoutError as err:
+            _LOGGER.error("Timed out initializing OBD adapter: %s", err)
+            self._connected = False
+            if self._client and self._client.is_connected:
+                await self._client.disconnect()
             return False
 
     async def disconnect(self) -> None:
@@ -105,7 +145,7 @@ class GenericObdApi:
         """Query a specific OBD PID.
 
         Args:
-            pid: PID in hex format, e.g., "010D" for odometer
+            pid: Mode/PID in hex, e.g., "010C" or Toyota-specific "220103"
 
         Returns:
             Parsed value or None if query failed
@@ -116,29 +156,22 @@ class GenericObdApi:
                 if not await self.connect():
                     return None
 
-            # Send the OBD command
+            if pid == "220103":
+                async with self._command_lock:
+                    try:
+                        await self._send_command("ATSH700")
+                        response = await self._send_command("220103")
+                    finally:
+                        await self._send_command("ATSH7DF")
+                return self._parse_toyota_odometer(response)
+
             cmd = self._build_obd_command(pid)
             _LOGGER.debug("Querying PID %s with command: %s", pid, cmd)
-
-            # Clear buffer and event
-            self._read_buffer.clear()
-            self._response_event.clear()
-
-            # Send command to adapter
-            await self._client.write_gatt_char(
-                self._char_uuid_write, cmd.encode() + b"\r"
-            )
-
-            # Wait for response
-            await asyncio.wait_for(self._response_event.wait(), timeout=5.0)
-
-            # Parse the response
-            response = self._read_buffer.decode("utf-8", errors="ignore").strip()
+            async with self._command_lock:
+                response = await self._send_command(cmd)
             _LOGGER.debug("Response for PID %s: %s", pid, response)
 
-            # Parse and return the value
-            value = self._parse_obd_response(pid, response)
-            return value
+            return self._parse_obd_response(pid, response)
 
         except asyncio.TimeoutError:
             _LOGGER.warning("Timeout waiting for PID %s response", pid)
@@ -160,6 +193,66 @@ class GenericObdApi:
         # Mode 01 (current data) + PID
         return f"{pid}"
 
+    async def _send_command(self, command: str, timeout: float = 5.0) -> str:
+        """Send one ELM command and collect notifications through the prompt."""
+        if not self._client or not self._connected:
+            raise BleakError("OBD adapter is not connected")
+
+        self._read_buffer.clear()
+        self._response_event.clear()
+        try:
+            await self._client.write_gatt_char(
+                self._char_uuid_write, command.encode() + b"\r"
+            )
+        except BleakError:
+            fallback_uuid = self._char_uuid_read
+            if self._char_uuid_write.lower() == fallback_uuid.lower():
+                raise
+            _LOGGER.warning(
+                "Configured write characteristic %s rejected command; retrying on %s",
+                self._char_uuid_write,
+                fallback_uuid,
+            )
+            self._char_uuid_write = fallback_uuid
+            await self._client.write_gatt_char(
+                self._char_uuid_write, command.encode() + b"\r"
+            )
+
+        while b">" not in self._read_buffer:
+            self._response_event.clear()
+            if b">" in self._read_buffer:
+                break
+            await asyncio.wait_for(self._response_event.wait(), timeout=timeout)
+
+        return self._read_buffer.decode("ascii", errors="ignore").strip()
+
+    async def _initialize_adapter(self) -> None:
+        """Reset the ELM adapter and configure predictable response formatting."""
+        response = await self._send_command("ATZ", timeout=10.0)
+        if "ELM" not in response.upper():
+            _LOGGER.warning(
+                "Unexpected response while resetting OBD adapter: %s", response
+            )
+
+        for command in ("ATE0", "ATH1", "ATS0", "ATAT1", "ATAL", "ATST64", "ATSP0"):
+            response = await self._send_command(command)
+            if "?" in response or "ERROR" in response.upper():
+                _LOGGER.warning(
+                    "OBD adapter did not accept initialization command %s: %s",
+                    command,
+                    response,
+                )
+
+    @staticmethod
+    def _parse_toyota_odometer(response: str) -> Optional[int]:
+        """Extract the Toyota odometer's three-byte kilometer value."""
+        compact = re.sub(r"[^0-9A-F]", "", response.upper())
+        match = re.search(r"708(?:07)?62010301([0-9A-F]{6})", compact)
+        if not match:
+            _LOGGER.debug("No Toyota odometer value in response: %s", response)
+            return None
+        return int(match.group(1), 16)
+
     def _parse_obd_response(self, pid: str, response: str) -> Optional[Any]:
         """Parse an OBD response for the given PID.
 
@@ -171,35 +264,24 @@ class GenericObdApi:
             Parsed value or None if parsing failed
         """
         try:
-            # Remove common prefixes/whitespace
-            response = response.replace("\r", "").replace("\n", "").strip()
-
-            # Typical ELM327 response format: ">41XX..." where XX are data bytes
-            # or "010D" might return "41 0D 12 34" (mode response + PID + data bytes)
+            response = response.upper()
 
             if "NO DATA" in response or "?" in response:
                 _LOGGER.debug("No data for PID %s", pid)
                 return None
 
-            # Extract hex bytes from response
-            parts = response.split()
-            if len(parts) < 3:
+            # ELM replies can be compact and include CAN IDs (for example
+            # 7E803410D00), so locate the positive mode/PID response directly.
+            match = re.search(rf"41{re.escape(pid[2:])}([0-9A-F]+)", response)
+            if not match:
                 _LOGGER.debug("Invalid response format for PID %s: %s", pid, response)
                 return None
 
-            # Skip mode response byte and PID echo, get data bytes
-            data_bytes = parts[2:]
-
-            # Convert to integers
-            data = bytes([int(b, 16) for b in data_bytes])
+            data = bytes.fromhex(match.group(1)[: len(match.group(1)) // 2 * 2])
 
             # Decode based on PID type
-            if pid == "010D":  # Odometer
-                # Single 16-bit value representing km (or potentially 24-bit)
-                if len(data) >= 2:
-                    value = (data[0] << 8) | data[1]
-                    return value
-                return None
+            if pid == "010D":  # Vehicle speed
+                return data[0] if data else None
 
             elif pid == "010C":  # RPM
                 # 2 bytes: ((A*256)+B)/4

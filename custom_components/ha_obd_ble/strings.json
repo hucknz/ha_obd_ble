@@ -13,7 +13,7 @@
       },
       "configure": {
         "title": "OBD Adapter Settings",
-        "description": "Configure the BLE GATT UUIDs for {name}.\n\nLeave at defaults for standard ELM327/LeLink2 adapters.\nFor JFIND adapters, use:\n• Service: 0000fff0-0000-1000-8000-00805f9b34fb\n• Read: 0000fff1-0000-1000-8000-00805f9b34fb\n• Write: 0000fff1-0000-1000-8000-00805f9b34fb",
+        "description": "Configure the BLE GATT UUIDs for {name}.\n\nDefaults are service FFF0, read FFF1, and write FFF2. Existing adapters using service FFE0 and characteristic FFE1 are also supported.\nFor older JFIND adapters that use one characteristic for both directions, set both read and write to FFF1.",
         "data": {
           "service_uuid": "BLE Service UUID",
           "characteristic_uuid_read": "BLE Read Characteristic UUID",

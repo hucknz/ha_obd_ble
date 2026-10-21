@@ -11,6 +11,14 @@ SENSOR_DESCRIPTIONS = [
     # Core sensors (available on most vehicles)
     SensorEntityDescription(
         key="010D",
+        name="Vehicle Speed",
+        native_unit_of_measurement="km/h",
+        device_class=SensorDeviceClass.SPEED,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+    ),
+    SensorEntityDescription(
+        key="220103",
         name="Odometer",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,

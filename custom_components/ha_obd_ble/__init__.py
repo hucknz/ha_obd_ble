@@ -42,9 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
         # Handle option updates
-        entry.async_on_change_callback(
-            lambda: _handle_options_update(coordinator, entry)
-        )
+        entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
         return True
 
@@ -71,6 +69,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await async_setup_entry(hass, entry)
 
 
-def _handle_options_update(coordinator: GenericObdCoordinator, entry: ConfigEntry) -> None:
-    """Handle option updates."""
-    coordinator.options = entry.options or {}
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the entry so new options (including BLE UUIDs) take effect."""
+    await hass.config_entries.async_reload(entry.entry_id)

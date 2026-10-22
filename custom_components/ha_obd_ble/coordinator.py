@@ -108,7 +108,7 @@ class GenericObdCoordinator(DataUpdateCoordinator):
         """Fetch data from OBD adapter."""
         try:
             # Check if adapter is still in BLE range
-            device_present = await async_address_present(self._hass, self._address)
+            device_present = async_address_present(self._hass, self._address)
             if not device_present:
                 _LOGGER.debug("OBD adapter %s not in BLE range", self._address)
                 # Return cached data when out of range

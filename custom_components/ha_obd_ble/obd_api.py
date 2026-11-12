@@ -7,7 +7,13 @@ import logging
 import re
 from typing import Any, Optional
 
-from bleak import BleakClient, BleakError
+from bleak import BleakError
+from bleak.backends.device import BLEDevice
+from bleak_retry_connector import (
+    BleakClientWithServiceCache,
+    establish_connection,
+)
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
@@ -47,7 +53,7 @@ class GenericObdApi:
         """Initialize the OBD API."""
         self.hass = hass
         self._address = entry.data[CONF_ADDRESS]
-        self._client: Optional[BleakClient] = None
+        self._client: Optional[BleakClientWithServiceCache] = None
         self._connected = False
 
         # Get BLE UUIDs from options
@@ -71,8 +77,19 @@ class GenericObdApi:
                 return True
 
             _LOGGER.debug("Connecting to OBD adapter at %s", self._address)
-            self._client = BleakClient(self._address)
-            await self._client.connect()
+            ble_device: BLEDevice | None = async_ble_device_from_address(
+                self.hass, self._address
+            )
+            if ble_device is None:
+                raise BleakError(
+                    f"OBD adapter {self._address} was not found by any scanner"
+                )
+
+            self._client = await establish_connection(
+                BleakClientWithServiceCache,
+                ble_device,
+                self._address,
+            )
 
             configured_read = self._char_uuid_read
             try:
@@ -116,6 +133,9 @@ class GenericObdApi:
         except BleakError as err:
             _LOGGER.error("Failed to connect to OBD adapter: %s", err)
             self._connected = False
+            if self._client and self._client.is_connected:
+                await self._client.disconnect()
+            self._client = None
             return False
         except asyncio.TimeoutError as err:
             _LOGGER.error("Timed out initializing OBD adapter: %s", err)
